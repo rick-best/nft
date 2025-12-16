@@ -35,6 +35,21 @@ export const en: Translations = {
   selectNetwork: "Select to auto-fill",
   manualEntry: "Or enter details manually below",
   noResults: "No networks found",
+  // Upgrade keys
+  selectStandard: "Select Contract Standard",
+  std721: "ERC-721 (Unique)",
+  std721Desc: "Best for 1/1 Art, PFPs, Digital Collectibles.",
+  std1155: "ERC-1155 (Semi-Fungible)",
+  std1155Desc: "Best for Gaming Items, Membership Passes, Multiple copies.",
+  mintDashboard: "Minting Dashboard",
+  mintingFor: "Minting for collection:",
+  mintQuantity: "Mint Quantity",
+  tokenId: "Token ID",
+  amount: "Amount (Copies)",
+  mint: "Mint Tokens",
+  minting: "Minting...",
+  mintSuccess: "Mint Successful!",
+  backToDeploy: "← Back to Launchpad",
 };
 
 export const zh: Translations = {
@@ -72,4 +87,19 @@ export const zh: Translations = {
   selectNetwork: "选择以自动填充",
   manualEntry: "或在下方手动输入详情",
   noResults: "未找到网络",
+  // Upgrade keys
+  selectStandard: "选择合约标准",
+  std721: "ERC-721 (独一无二)",
+  std721Desc: "最适合 1/1 艺术品, 头像, 数字收藏品。",
+  std1155: "ERC-1155 (半同质化)",
+  std1155Desc: "最适合游戏道具, 会员卡, 多份副本。",
+  mintDashboard: "铸造控制台",
+  mintingFor: "正在铸造合集:",
+  mintQuantity: "铸造数量",
+  tokenId: "代币 ID",
+  amount: "数量 (份数)",
+  mint: "铸造代币",
+  minting: "铸造中...",
+  mintSuccess: "铸造成功！",
+  backToDeploy: "← 返回发布页",
 };

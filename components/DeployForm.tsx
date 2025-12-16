@@ -3,7 +3,15 @@ import { ethers } from 'ethers';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
-import { FACTORY_ADDRESSES, FACTORY_ABI, STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE } from '../constants/contracts';
+import { 
+  FACTORY_ADDRESSES, 
+  FACTORY_ABI, 
+  STANDARD_NFT_ABI, 
+  STANDARD_NFT_BYTECODE,
+  ERC1155_ABI,
+  ERC1155_BYTECODE 
+} from '../constants/contracts';
+import { ContractType } from '../types';
 
 interface DeployFormProps {
   provider: ethers.BrowserProvider | null;
@@ -11,27 +19,36 @@ interface DeployFormProps {
   account: string | null;
   chainId: number | null;
   onOpenCustomChainModal: () => void;
+  onSuccess: (address: string, type: ContractType, name: string) => void;
 }
 
-export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, account, chainId, onOpenCustomChainModal }) => {
+export const DeployForm: React.FC<DeployFormProps> = ({ 
+  provider, 
+  signer, 
+  account, 
+  chainId, 
+  onOpenCustomChainModal,
+  onSuccess
+}) => {
   const { t } = useLanguage();
+  const [contractType, setContractType] = useState<ContractType>('ERC721');
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deployedAddress, setDeployedAddress] = useState<string | null>(null);
-  const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
   // Image Upload State
   const [isUploading, setIsUploading] = useState(false);
   const [ipfsUrl, setIpfsUrl] = useState('');
 
-  // Pinata Keys (Ideally these should be in env vars or backend proxy)
+  // Pinata Keys
   const PINATA_API_KEY = "06fd7d4dd9331ae8847d";
   const PINATA_SECRET_KEY = "ac90ff56f19d1653ab90514e77a531ae17d0aaa482c87f216aa47bc0018bfd55";
 
   // Determine Deployment Mode
-  const isFactorySupported = chainId && FACTORY_ADDRESSES[chainId];
+  // Factory currently only supports 721 in this demo, so for 1155 we force direct deployment or update factory logic.
+  // For simplicity, let's assume Factory is 721 only for now, so 1155 falls back to custom.
+  const isFactorySupported = chainId && FACTORY_ADDRESSES[chainId] && contractType === 'ERC721';
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -74,35 +91,40 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
     
     setIsDeploying(true);
     setError(null);
-    setDeployedAddress(null);
-    setTxHash(null);
 
     try {
-      if (isFactorySupported) {
-        // Mode A: Factory Deployment
-        const factoryAddress = FACTORY_ADDRESSES[chainId];
-        const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
-        
-        console.log(`Deploying via Factory at ${factoryAddress}...`);
-        // Added ipfsUrl as baseTokenURI
-        const tx = await factory.deployCollection(name, symbol, ipfsUrl);
-        setTxHash(tx.hash);
-        const receipt = await tx.wait();
-        
-        setDeployedAddress("0x... (Check Explorer)"); 
+      let address = '';
+
+      if (contractType === 'ERC721') {
+        if (isFactorySupported) {
+          // Mode A: Factory Deployment (721)
+          const factoryAddress = FACTORY_ADDRESSES[chainId];
+          const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
+          console.log(`Deploying ERC721 via Factory at ${factoryAddress}...`);
+          const tx = await factory.deployCollection(name, symbol, ipfsUrl);
+          await tx.wait();
+          address = "0x... (Check Explorer)"; // Mock address for factory in demo
+        } else {
+          // Mode B: Direct Deployment (721)
+          console.log("Deploying ERC721 directly...");
+          const factory = new ethers.ContractFactory(STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE, signer);
+          const contract = await factory.deploy(name, symbol, ipfsUrl); 
+          await contract.waitForDeployment();
+          address = await contract.getAddress();
+        }
       } else {
-        // Mode B: Direct Deployment (Custom Chain)
-        console.log("Deploying directly via Bytecode...");
-        const factory = new ethers.ContractFactory(STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE, signer);
-        
-        // Added ipfsUrl as baseTokenURI
-        const contract = await factory.deploy(name, symbol, ipfsUrl); 
-        setTxHash(contract.deploymentTransaction()?.hash || null);
-        
+        // Mode C: Direct Deployment (1155)
+        // Note: 1155 constructor args: (uri)
+        console.log("Deploying ERC1155 directly...");
+        const factory = new ethers.ContractFactory(ERC1155_ABI, ERC1155_BYTECODE, signer);
+        const contract = await factory.deploy(ipfsUrl); 
         await contract.waitForDeployment();
-        const address = await contract.getAddress();
-        setDeployedAddress(address);
+        address = await contract.getAddress();
       }
+
+      // Trigger Success Callback
+      onSuccess(address, contractType, name || "My Collection");
+
     } catch (err: any) {
       console.error(err);
       if (err.code === 'INVALID_ARGUMENT' && err.message.includes('invalid bytecode')) {
@@ -130,12 +152,35 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
       <div className="bg-slate-800 shadow-xl rounded-lg border border-slate-700 overflow-hidden">
         <div className="px-6 py-8 border-b border-slate-700">
           <h2 className="text-2xl font-bold text-white text-center">{t.deployCollection}</h2>
-          <div className="mt-2 flex justify-center">
-             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isFactorySupported ? 'bg-green-900 text-green-200' : 'bg-yellow-900 text-yellow-200'}`}>
-                {isFactorySupported ? t.modeSupported : t.modeCustom}
-             </span>
+          
+          <div className="mt-4 flex justify-center space-x-4">
+             {/* Radio Group for Standard */}
+             <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
+               <button
+                 type="button"
+                 onClick={() => setContractType('ERC721')}
+                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                   contractType === 'ERC721' ? 'bg-brand-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                 }`}
+               >
+                 {t.std721}
+               </button>
+               <button
+                 type="button"
+                 onClick={() => setContractType('ERC1155')}
+                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                   contractType === 'ERC1155' ? 'bg-brand-600 text-white shadow' : 'text-slate-400 hover:text-white'
+                 }`}
+               >
+                 {t.std1155}
+               </button>
+             </div>
           </div>
-          {!isFactorySupported && (
+          <p className="text-center text-xs text-slate-500 mt-2">
+            {contractType === 'ERC721' ? t.std721Desc : t.std1155Desc}
+          </p>
+
+          {!isFactorySupported && contractType === 'ERC721' && (
             <div className="mt-4 text-center">
                <p className="text-sm text-slate-400 mb-2">Chain ID: {chainId} not in factory list.</p>
                <Button variant="secondary" onClick={onOpenCustomChainModal} className="text-xs">
@@ -178,18 +223,24 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input 
               label={t.collectionName} 
-              placeholder="e.g. Bored Apes" 
+              placeholder={contractType === 'ERC721' ? "e.g. Bored Apes" : "e.g. Game Items"} 
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
-            <Input 
-              label={t.collectionSymbol} 
-              placeholder="e.g. BAYC" 
-              value={symbol}
-              onChange={(e) => setSymbol(e.target.value)}
-              required
-            />
+            
+            {/* Symbol is strictly usually only for ERC721 in standard constructors. 
+                ERC1155 usually doesn't have symbol in constructor. 
+                We disable it for 1155 to avoid confusion. */}
+            {contractType === 'ERC721' && (
+              <Input 
+                label={t.collectionSymbol} 
+                placeholder="e.g. BAYC" 
+                value={symbol}
+                onChange={(e) => setSymbol(e.target.value)}
+                required
+              />
+            )}
           </div>
 
           {/* Hidden/Read-only IPFS Input display */}
@@ -208,28 +259,12 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
             </div>
           )}
 
-          {deployedAddress && (
-            <div className="p-4 bg-green-900/50 border border-green-800 rounded-md">
-              <h4 className="text-sm font-medium text-green-200 mb-2">{t.success}</h4>
-              <p className="text-xs text-green-100 mb-1">{t.contractAddress}: <span className="font-mono">{deployedAddress}</span></p>
-              {txHash && (
-                 <a 
-                   href="#" 
-                   className="text-xs text-brand-400 hover:text-brand-300 underline"
-                   onClick={(e) => e.preventDefault()} // Placeholder link
-                 >
-                   {t.viewOnExplorer} (Tx: {txHash.slice(0, 10)}...)
-                 </a>
-              )}
-            </div>
-          )}
-
           <div className="pt-4">
             <Button 
               type="submit" 
               className="w-full text-lg py-4" 
               isLoading={isDeploying}
-              disabled={!name || !symbol || !ipfsUrl}
+              disabled={!name || (!symbol && contractType === 'ERC721') || !ipfsUrl}
             >
               {isDeploying ? t.deploying : t.deploy}
             </Button>

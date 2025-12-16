@@ -1,4 +1,5 @@
 export type Language = 'en' | 'zh';
+export type ContractType = 'ERC721' | 'ERC1155';
 
 export interface Translations {
   connectWallet: string;
@@ -30,12 +31,27 @@ export interface Translations {
   uploading: string;
   imageUploaded: string;
   ipfsUrlLabel: string;
-  // New keys for network search
+  // Network Search
   searchNetwork: string;
   loadingNetworks: string;
   selectNetwork: string;
   manualEntry: string;
   noResults: string;
+  // New keys for Upgrade
+  selectStandard: string;
+  std721: string;
+  std721Desc: string;
+  std1155: string;
+  std1155Desc: string;
+  mintDashboard: string;
+  mintingFor: string;
+  mintQuantity: string;
+  tokenId: string;
+  amount: string;
+  mint: string;
+  minting: string;
+  mintSuccess: string;
+  backToDeploy: string;
 }
 
 export interface ChainConfig {

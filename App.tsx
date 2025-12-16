@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ethers } from 'ethers';
 import { LanguageProvider, useLanguage } from './contexts/LanguageContext';
 import { Navbar } from './components/Navbar';
 import { DeployForm } from './components/DeployForm';
+import { MintDashboard } from './components/MintDashboard';
 import { CustomNetworkModal } from './components/CustomNetworkModal';
-import { Translations } from './types';
+import { ContractType } from './types';
 
 // Fix: Extend Window interface to include ethereum property
 declare global {
@@ -21,6 +22,14 @@ const AppContent = () => {
   const [account, setAccount] = useState<string | null>(null);
   const [chainId, setChainId] = useState<number | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // View State
+  const [view, setView] = useState<'deploy' | 'mint'>('deploy');
+  const [deployedContract, setDeployedContract] = useState<{
+    address: string;
+    type: ContractType;
+    name: string;
+  } | null>(null);
 
   const connectWallet = useCallback(async () => {
     if (window.ethereum) {
@@ -69,7 +78,10 @@ const AppContent = () => {
     }
   };
 
-  // Auto connect if previously connected (optional logic, skipped for simplicity)
+  const handleDeploySuccess = (address: string, type: ContractType, name: string) => {
+    setDeployedContract({ address, type, name });
+    setView('mint');
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans selection:bg-brand-500 selection:text-white">
@@ -85,13 +97,27 @@ const AppContent = () => {
           </p>
         </div>
 
-        <DeployForm 
-          provider={provider} 
-          signer={signer} 
-          account={account} 
-          chainId={chainId} 
-          onOpenCustomChainModal={() => setIsModalOpen(true)}
-        />
+        {view === 'deploy' ? (
+          <DeployForm 
+            provider={provider} 
+            signer={signer} 
+            account={account} 
+            chainId={chainId} 
+            onOpenCustomChainModal={() => setIsModalOpen(true)}
+            onSuccess={handleDeploySuccess}
+          />
+        ) : (
+          deployedContract && (
+            <MintDashboard 
+              provider={provider}
+              signer={signer}
+              contractAddress={deployedContract.address}
+              contractType={deployedContract.type}
+              collectionName={deployedContract.name}
+              onBack={() => setView('deploy')}
+            />
+          )
+        )}
       </main>
 
       <CustomNetworkModal 
