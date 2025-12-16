@@ -52,6 +52,7 @@ export interface Translations {
   minting: string;
   mintSuccess: string;
   backToDeploy: string;
+  maxSupply: string;
 }
 
 export interface ChainConfig {

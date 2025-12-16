@@ -3,11 +3,12 @@
 // In a real app, this would be the full compiled output.
 
 export const STANDARD_NFT_ABI = [
-  "constructor(string name, string symbol, string baseTokenURI)",
+  "constructor(string name, string symbol, string baseTokenURI, uint256 maxSupply)",
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function owner() view returns (address)",
-  "function mint(address to) public"
+  "function mint(address to) public",
+  "function transferOwnership(address newOwner) public"
 ];
 
 // Placeholder Bytecode for 721
@@ -19,7 +20,8 @@ export const STANDARD_NFT_BYTECODE = "0x608060405234801561001057600080fd5b506101
 export const ERC1155_ABI = [
   "constructor(string uri)",
   "function uri(uint256) public view returns (string memory)",
-  "function mint(address to, uint256 id, uint256 amount, bytes memory data) public"
+  "function mint(address to, uint256 id, uint256 amount, bytes memory data) public",
+  "function transferOwnership(address newOwner) public"
 ];
 
 // Placeholder Bytecode for 1155 - Replace with real bytecode for production
@@ -32,6 +34,7 @@ export const FACTORY_ADDRESSES: Record<number, string> = {
   5: "0x0987654321098765432109876543210987654321", // Goerli Mock
 };
 
+// Updated Factory ABI to include maxSupply for 721 deployments
 export const FACTORY_ABI = [
-  "function deployCollection(string name, string symbol, string baseTokenURI) external returns (address)"
+  "function deployCollection(string name, string symbol, string baseTokenURI, uint256 maxSupply) external returns (address)"
 ];

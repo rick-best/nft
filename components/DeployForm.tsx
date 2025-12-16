@@ -34,6 +34,7 @@ export const DeployForm: React.FC<DeployFormProps> = ({
   const [contractType, setContractType] = useState<ContractType>('ERC721');
   const [name, setName] = useState('');
   const [symbol, setSymbol] = useState('');
+  const [maxSupply, setMaxSupply] = useState('10000');
   const [isDeploying, setIsDeploying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -46,8 +47,7 @@ export const DeployForm: React.FC<DeployFormProps> = ({
   const PINATA_SECRET_KEY = "ac90ff56f19d1653ab90514e77a531ae17d0aaa482c87f216aa47bc0018bfd55";
 
   // Determine Deployment Mode
-  // Factory currently only supports 721 in this demo, so for 1155 we force direct deployment or update factory logic.
-  // For simplicity, let's assume Factory is 721 only for now, so 1155 falls back to custom.
+  // Factory currently only supports 721 in this demo.
   const isFactorySupported = chainId && FACTORY_ADDRESSES[chainId] && contractType === 'ERC721';
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,20 +101,23 @@ export const DeployForm: React.FC<DeployFormProps> = ({
           const factoryAddress = FACTORY_ADDRESSES[chainId];
           const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
           console.log(`Deploying ERC721 via Factory at ${factoryAddress}...`);
-          const tx = await factory.deployCollection(name, symbol, ipfsUrl);
+          // Pass maxSupply
+          const tx = await factory.deployCollection(name, symbol, ipfsUrl, maxSupply);
           await tx.wait();
-          address = "0x... (Check Explorer)"; // Mock address for factory in demo
+          address = "0x... (Check Explorer)"; 
         } else {
           // Mode B: Direct Deployment (721)
+          // Uses Standard ABI with maxSupply in constructor
           console.log("Deploying ERC721 directly...");
           const factory = new ethers.ContractFactory(STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE, signer);
-          const contract = await factory.deploy(name, symbol, ipfsUrl); 
+          const contract = await factory.deploy(name, symbol, ipfsUrl, maxSupply); 
           await contract.waitForDeployment();
           address = await contract.getAddress();
         }
       } else {
         // Mode C: Direct Deployment (1155)
         // Note: 1155 constructor args: (uri)
+        // Direct deployment inherently makes msg.sender (signer) the owner.
         console.log("Deploying ERC1155 directly...");
         const factory = new ethers.ContractFactory(ERC1155_ABI, ERC1155_BYTECODE, signer);
         const contract = await factory.deploy(ipfsUrl); 
@@ -229,9 +232,7 @@ export const DeployForm: React.FC<DeployFormProps> = ({
               required
             />
             
-            {/* Symbol is strictly usually only for ERC721 in standard constructors. 
-                ERC1155 usually doesn't have symbol in constructor. 
-                We disable it for 1155 to avoid confusion. */}
+            {/* Symbol is only for ERC721 */}
             {contractType === 'ERC721' && (
               <Input 
                 label={t.collectionSymbol} 
@@ -242,6 +243,18 @@ export const DeployForm: React.FC<DeployFormProps> = ({
               />
             )}
           </div>
+
+          {/* New Max Supply Input for ERC721 */}
+          {contractType === 'ERC721' && (
+             <Input 
+               label={t.maxSupply}
+               type="number"
+               placeholder="10000" 
+               value={maxSupply}
+               onChange={(e) => setMaxSupply(e.target.value)}
+               required
+             />
+          )}
 
           {/* Hidden/Read-only IPFS Input display */}
           {ipfsUrl && (

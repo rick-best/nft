@@ -50,6 +50,7 @@ export const en: Translations = {
   minting: "Minting...",
   mintSuccess: "Mint Successful!",
   backToDeploy: "← Back to Launchpad",
+  maxSupply: "Max Supply (e.g. 10000)",
 };
 
 export const zh: Translations = {
@@ -102,4 +103,5 @@ export const zh: Translations = {
   minting: "铸造中...",
   mintSuccess: "铸造成功！",
   backToDeploy: "← 返回发布页",
+  maxSupply: "最大供应量 (例如 10000)",
 };

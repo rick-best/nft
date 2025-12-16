@@ -49,8 +49,8 @@ export const MintDashboard: React.FC<MintDashboardProps> = ({
         const contract = new ethers.Contract(contractAddress, STANDARD_NFT_ABI, signer);
         const qty = parseInt(quantity);
         
-        // Loop mint based on standard ABI provided which only has mint(to)
-        // In prod, use ERC721A or batchMint for gas efficiency.
+        // Loop mint based on standard ABI provided.
+        // Removed hardcoded limit of 20. Users can mint as many as gas allows.
         for (let i = 0; i < qty; i++) {
           const tx = await contract.mint(userAddress);
           if (i === qty - 1) {
@@ -111,7 +111,7 @@ export const MintDashboard: React.FC<MintDashboardProps> = ({
                  label={t.mintQuantity}
                  type="number"
                  min="1"
-                 max="20"
+                 // Removed max="20" constraint
                  value={quantity}
                  onChange={(e) => setQuantity(e.target.value)}
                  required
