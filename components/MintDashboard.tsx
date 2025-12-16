@@ -49,22 +49,19 @@ export const MintDashboard: React.FC<MintDashboardProps> = ({
         const contract = new ethers.Contract(contractAddress, STANDARD_NFT_ABI, signer);
         const qty = parseInt(quantity);
         
-        // Loop mint based on standard ABI provided.
-        // Removed hardcoded limit of 20. Users can mint as many as gas allows.
-        for (let i = 0; i < qty; i++) {
-          const tx = await contract.mint(userAddress);
-          if (i === qty - 1) {
-            setTxHash(tx.hash); // Show last hash
-            await tx.wait();
-          } else {
-             await tx.wait(); // Wait for sequence
-          }
-        }
+        // UPGRADE: Use ERC721A Batch Minting
+        // This sends 1 transaction for multiple items, saving massive gas.
+        console.log(`Minting ${qty} tokens via ERC721A...`);
+        const tx = await contract.mint(qty); 
+        setTxHash(tx.hash);
+        await tx.wait();
 
       } else {
         // ERC-1155
         const contract = new ethers.Contract(contractAddress, ERC1155_ABI, signer);
         const data = "0x"; // Empty bytes
+        
+        console.log(`Minting ${amount} of Token ID ${tokenId}...`);
         const tx = await contract.mint(userAddress, tokenId, amount, data);
         setTxHash(tx.hash);
         await tx.wait();
@@ -72,7 +69,12 @@ export const MintDashboard: React.FC<MintDashboardProps> = ({
 
     } catch (err: any) {
       console.error("Minting failed", err);
-      setError(err.message || "Minting Failed");
+      // Friendly error handling
+      if (err.message.includes("execution reverted")) {
+        setError("Transaction Failed: likely not Owner or Max Supply reached.");
+      } else {
+        setError(err.message || "Minting Failed");
+      }
     } finally {
       setIsMinting(false);
     }
@@ -111,12 +113,12 @@ export const MintDashboard: React.FC<MintDashboardProps> = ({
                  label={t.mintQuantity}
                  type="number"
                  min="1"
-                 // Removed max="20" constraint
+                 // No hard limit, gas depends on chain
                  value={quantity}
                  onChange={(e) => setQuantity(e.target.value)}
                  required
                />
-               <p className="text-xs text-slate-500 mt-2">Minting {quantity} unique tokens to yourself.</p>
+               <p className="text-xs text-slate-500 mt-2">Minting {quantity} tokens (ERC721A Optimized).</p>
              </div>
           ) : (
              // ERC-1155 Form

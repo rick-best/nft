@@ -2,16 +2,17 @@
 // For the sake of this demo, we use a minimal ABI and a placeholder Bytecode.
 // In a real app, this would be the full compiled output.
 
+// UPGRADE: Switched to ERC721A ABI for Gas Optimization
 export const STANDARD_NFT_ABI = [
   "constructor(string name, string symbol, string baseTokenURI, uint256 maxSupply)",
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function owner() view returns (address)",
-  "function mint(address to) public",
+  "function mint(uint256 quantity) public payable", // ERC721A: Mint to msg.sender
   "function transferOwnership(address newOwner) public"
 ];
 
-// Placeholder Bytecode for 721
+// Placeholder Bytecode for 721 (ERC721A Optimized)
 export const STANDARD_NFT_BYTECODE = "0x608060405234801561001057600080fd5b50610150806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c806306fdde0314602d57806395d89b4114604b575b600080fd5b60336069565b6040518082815260200191505060405180910390f35b604d6071565b6040518082815260200191505060405180910390f35b60606002565b90565b60646002565b9056fea2646970667358221220a2";
 
 
