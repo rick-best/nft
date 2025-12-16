@@ -1,21 +1,23 @@
 // IMPORTANT: To fix 'execution reverted' errors, you MUST compile the contracts in the /contracts folder
 // and replace the BYTECODE strings below with your actual compiled artifacts.
-// The placeholders below are dummies and will NOT work for actual minting on-chain.
 
 // --- ERC-721A (Optimized) ---
 
 export const STANDARD_NFT_ABI = [
-  "constructor(string name, string symbol, string baseTokenURI, uint256 maxSupply)",
+  // Constructor for direct deployment via Ethers (matches ERC721Launchpad.sol)
+  "constructor(string name, string symbol, string baseTokenURI, uint256 maxSupply, address initialOwner)",
   "function name() view returns (string)",
   "function symbol() view returns (string)",
   "function owner() view returns (address)",
   "function totalSupply() view returns (uint256)",
-  // ERC721A minting usually takes quantity. Owner is msg.sender.
+  "function maxSupply() view returns (uint256)",
+  // ERC721A minting:
   "function mint(uint256 quantity) external payable", 
   "function transferOwnership(address newOwner) public"
 ];
 
-// REPLACE THIS WITH YOUR COMPILED ERC721LAUNCHPAD BYTECODE
+// ⚠️ PLACEHOLDER - REPLACE THIS WITH REAL COMPILED BYTECODE FROM REMIX/HARDHAT ⚠️
+// If you use this dummy string, transactions will REVERT because the code is empty.
 export const STANDARD_NFT_BYTECODE = "0x608060405234801561001057600080fd5b50610150806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c806306fdde0314602d57806395d89b4114604b575b600080fd5b60336069565b6040518082815260200191505060405180910390f35b604d6071565b6040518082815260200191505060405180910390f35b60606002565b90565b60646002565b9056fea2646970667358221220a2";
 
 
@@ -28,7 +30,6 @@ export const ERC1155_ABI = [
   "function transferOwnership(address newOwner) public"
 ];
 
-// REPLACE THIS WITH YOUR COMPILED ERC1155LAUNCHPAD BYTECODE
 export const ERC1155_BYTECODE = "0x608060405234801561001057600080fd5b50610150806100206000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c806306fdde0314602d57806395d89b4114604b575b600080fd5b60336069565b6040518082815260200191505060405180910390f35b604d6071565b6040518082815260200191505060405180910390f35b60606002565b90565b60646002565b9056fea2646970667358221220a2";
 
 // --- Factory ---

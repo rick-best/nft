@@ -42,12 +42,11 @@ export const DeployForm: React.FC<DeployFormProps> = ({
   const [isUploading, setIsUploading] = useState(false);
   const [ipfsUrl, setIpfsUrl] = useState('');
 
-  // Pinata Keys
+  // Pinata Keys (Demo only - Move to backend in prod)
   const PINATA_API_KEY = "06fd7d4dd9331ae8847d";
   const PINATA_SECRET_KEY = "ac90ff56f19d1653ab90514e77a531ae17d0aaa482c87f216aa47bc0018bfd55";
 
   // Determine Deployment Mode
-  // Factory currently only supports 721 in this demo.
   const isFactorySupported = chainId && FACTORY_ADDRESSES[chainId] && contractType === 'ERC721';
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,13 +69,9 @@ export const DeployForm: React.FC<DeployFormProps> = ({
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Pinata upload failed');
-      }
-
+      if (!response.ok) throw new Error('Pinata upload failed');
       const data = await response.json();
-      const url = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
-      setIpfsUrl(url);
+      setIpfsUrl(`https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`);
     } catch (err: any) {
       console.error(err);
       setError("Image Upload Failed: " + err.message);
@@ -97,27 +92,36 @@ export const DeployForm: React.FC<DeployFormProps> = ({
 
       if (contractType === 'ERC721') {
         if (isFactorySupported) {
-          // Mode A: Factory Deployment (721)
+          // Mode A: Factory Deployment
           const factoryAddress = FACTORY_ADDRESSES[chainId];
           const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
           console.log(`Deploying ERC721 via Factory at ${factoryAddress}...`);
-          // Pass maxSupply
           const tx = await factory.deployCollection(name, symbol, ipfsUrl, maxSupply);
           await tx.wait();
           address = "0x... (Check Explorer)"; 
         } else {
-          // Mode B: Direct Deployment (721)
-          // Uses Standard ABI with maxSupply in constructor
+          // Mode B: Direct Deployment
+          
+          // SAFETY CHECK: Detect Dummy Bytecode
+          if (STANDARD_NFT_BYTECODE.length < 500) {
+             throw new Error("You are using placeholder bytecode! Please compile `contracts/ERC721Launchpad.sol` and update `constants/contracts.ts` with the real bytecode.");
+          }
+
           console.log("Deploying ERC721 directly...");
           const factory = new ethers.ContractFactory(STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE, signer);
-          const contract = await factory.deploy(name, symbol, ipfsUrl, maxSupply); 
+          
+          // Updated Constructor Args: name, symbol, uri, maxSupply, owner
+          const userAddress = await signer.getAddress();
+          const contract = await factory.deploy(name, symbol, ipfsUrl, maxSupply, userAddress); 
+          
           await contract.waitForDeployment();
           address = await contract.getAddress();
         }
       } else {
         // Mode C: Direct Deployment (1155)
-        // Note: 1155 constructor args: (uri)
-        // Direct deployment inherently makes msg.sender (signer) the owner.
+        if (ERC1155_BYTECODE.length < 500) {
+             throw new Error("You are using placeholder bytecode! Please compile `contracts/ERC1155Launchpad.sol` and update `constants/contracts.ts`.");
+        }
         console.log("Deploying ERC1155 directly...");
         const factory = new ethers.ContractFactory(ERC1155_ABI, ERC1155_BYTECODE, signer);
         const contract = await factory.deploy(ipfsUrl); 
@@ -125,16 +129,16 @@ export const DeployForm: React.FC<DeployFormProps> = ({
         address = await contract.getAddress();
       }
 
-      // Trigger Success Callback
       onSuccess(address, contractType, name || "My Collection");
 
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'INVALID_ARGUMENT' && err.message.includes('invalid bytecode')) {
-        setError("Dev Note: Real deployment requires valid compiled bytecode in constants/contracts.ts");
-      } else {
-        setError(err.message || "Deployment Failed");
-      }
+      // Nice error message formatting
+      let msg = err.message || "Deployment Failed";
+      if (msg.includes("user rejected")) msg = "Transaction rejected by wallet.";
+      if (msg.includes("placeholder bytecode")) msg = "⚠️ DEV ERROR: You must replace the BYTECODE in constants/contracts.ts with compiled Solidity code.";
+      
+      setError(msg);
     } finally {
       setIsDeploying(false);
     }
@@ -157,7 +161,6 @@ export const DeployForm: React.FC<DeployFormProps> = ({
           <h2 className="text-2xl font-bold text-white text-center">{t.deployCollection}</h2>
           
           <div className="mt-4 flex justify-center space-x-4">
-             {/* Radio Group for Standard */}
              <div className="flex bg-slate-900 p-1 rounded-lg border border-slate-700">
                <button
                  type="button"
@@ -194,7 +197,6 @@ export const DeployForm: React.FC<DeployFormProps> = ({
         </div>
         
         <form onSubmit={handleDeploy} className="p-6 space-y-6">
-          {/* File Upload Section */}
           <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 border-dashed">
             <label className="block text-sm font-medium text-slate-300 mb-2">
               {t.uploadImage}
@@ -205,13 +207,7 @@ export const DeployForm: React.FC<DeployFormProps> = ({
                 accept="image/*"
                 onChange={handleImageUpload}
                 disabled={isUploading || isDeploying}
-                className="block w-full text-sm text-slate-400
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-full file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-brand-600 file:text-white
-                  hover:file:bg-brand-700
-                  cursor-pointer"
+                className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-600 file:text-white hover:file:bg-brand-700 cursor-pointer"
               />
               {isUploading && <span className="text-brand-400 text-sm animate-pulse">{t.uploading}</span>}
             </div>
@@ -231,8 +227,6 @@ export const DeployForm: React.FC<DeployFormProps> = ({
               onChange={(e) => setName(e.target.value)}
               required
             />
-            
-            {/* Symbol is only for ERC721 */}
             {contractType === 'ERC721' && (
               <Input 
                 label={t.collectionSymbol} 
@@ -244,7 +238,6 @@ export const DeployForm: React.FC<DeployFormProps> = ({
             )}
           </div>
 
-          {/* New Max Supply Input for ERC721 */}
           {contractType === 'ERC721' && (
              <Input 
                label={t.maxSupply}
@@ -256,7 +249,6 @@ export const DeployForm: React.FC<DeployFormProps> = ({
              />
           )}
 
-          {/* Hidden/Read-only IPFS Input display */}
           {ipfsUrl && (
              <Input 
                label={t.ipfsUrlLabel} 
@@ -268,7 +260,7 @@ export const DeployForm: React.FC<DeployFormProps> = ({
 
           {error && (
             <div className="p-4 bg-red-900/50 border border-red-800 rounded-md">
-              <p className="text-sm text-red-200">{t.error} {error}</p>
+              <p className="text-sm text-red-200">{error}</p>
             </div>
           )}
 
