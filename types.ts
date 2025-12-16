@@ -30,6 +30,12 @@ export interface Translations {
   uploading: string;
   imageUploaded: string;
   ipfsUrlLabel: string;
+  // New keys for network search
+  searchNetwork: string;
+  loadingNetworks: string;
+  selectNetwork: string;
+  manualEntry: string;
+  noResults: string;
 }
 
 export interface ChainConfig {
@@ -50,4 +56,24 @@ export interface CustomChainParams {
   };
   rpcUrls: string[];
   blockExplorerUrls?: string[];
+}
+
+export interface ChainData {
+  name: string;
+  chainId: number;
+  shortName: string;
+  chain: string;
+  networkId: number;
+  nativeCurrency: {
+    name: string;
+    symbol: string;
+    decimals: number;
+  };
+  rpc: string[];
+  faucets: string[];
+  explorers?: {
+    name: string;
+    url: string;
+    standard: string;
+  }[];
 }

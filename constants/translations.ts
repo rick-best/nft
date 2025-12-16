@@ -30,6 +30,11 @@ export const en: Translations = {
   uploading: "Uploading to IPFS...",
   imageUploaded: "Image Uploaded to Pinata!",
   ipfsUrlLabel: "Base URI (IPFS URL)",
+  searchNetwork: "Search Network (e.g. Base, Optimism)",
+  loadingNetworks: "Loading network list...",
+  selectNetwork: "Select to auto-fill",
+  manualEntry: "Or enter details manually below",
+  noResults: "No networks found",
 };
 
 export const zh: Translations = {
@@ -62,4 +67,9 @@ export const zh: Translations = {
   uploading: "正在上传至 IPFS...",
   imageUploaded: "图片已上传至 Pinata！",
   ipfsUrlLabel: "基础 URI (IPFS 链接)",
+  searchNetwork: "搜索网络 (例如 Base, Optimism)",
+  loadingNetworks: "正在加载网络列表...",
+  selectNetwork: "选择以自动填充",
+  manualEntry: "或在下方手动输入详情",
+  noResults: "未找到网络",
 };
