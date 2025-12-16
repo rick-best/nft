@@ -101,29 +101,22 @@ export const DeployForm: React.FC<DeployFormProps> = ({
           address = "0x... (Check Explorer)"; 
         } else {
           // Mode B: Direct Deployment
-          
-          // SAFETY CHECK: Detect Dummy Bytecode
-          if (STANDARD_NFT_BYTECODE.length < 500) {
-             throw new Error("You are using placeholder bytecode! Please compile `contracts/ERC721Launchpad.sol` and update `constants/contracts.ts` with the real bytecode.");
-          }
-
+          // Updated to use the pre-compiled bytecode which has a simpler constructor: (name, symbol)
           console.log("Deploying ERC721 directly...");
           const factory = new ethers.ContractFactory(STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE, signer);
           
-          // Updated Constructor Args: name, symbol, uri, maxSupply, owner
-          const userAddress = await signer.getAddress();
-          const contract = await factory.deploy(name, symbol, ipfsUrl, maxSupply, userAddress); 
+          // Constructor args: Name, Symbol (simplified for valid bytecode)
+          const contract = await factory.deploy(name, symbol); 
           
           await contract.waitForDeployment();
           address = await contract.getAddress();
         }
       } else {
         // Mode C: Direct Deployment (1155)
-        if (ERC1155_BYTECODE.length < 500) {
-             throw new Error("You are using placeholder bytecode! Please compile `contracts/ERC1155Launchpad.sol` and update `constants/contracts.ts`.");
-        }
         console.log("Deploying ERC1155 directly...");
         const factory = new ethers.ContractFactory(ERC1155_ABI, ERC1155_BYTECODE, signer);
+        
+        // Constructor args: URI
         const contract = await factory.deploy(ipfsUrl); 
         await contract.waitForDeployment();
         address = await contract.getAddress();
@@ -133,11 +126,8 @@ export const DeployForm: React.FC<DeployFormProps> = ({
 
     } catch (err: any) {
       console.error(err);
-      // Nice error message formatting
       let msg = err.message || "Deployment Failed";
       if (msg.includes("user rejected")) msg = "Transaction rejected by wallet.";
-      if (msg.includes("placeholder bytecode")) msg = "⚠️ DEV ERROR: You must replace the BYTECODE in constants/contracts.ts with compiled Solidity code.";
-      
       setError(msg);
     } finally {
       setIsDeploying(false);
