@@ -26,6 +26,10 @@ export const en: Translations = {
   launchpadTitle: "No-Code NFT Studio",
   launchpadSubtitle: "Launch your collection on any EVM chain in seconds.",
   required: "Required",
+  uploadImage: "Upload Collection Image",
+  uploading: "Uploading to IPFS...",
+  imageUploaded: "Image Uploaded to Pinata!",
+  ipfsUrlLabel: "Base URI (IPFS URL)",
 };
 
 export const zh: Translations = {
@@ -54,4 +58,8 @@ export const zh: Translations = {
   launchpadTitle: "无代码 NFT 工作室",
   launchpadSubtitle: "几秒钟内在这个任意 EVM 链上发布您的合集。",
   required: "必填",
+  uploadImage: "上传合集图片",
+  uploading: "正在上传至 IPFS...",
+  imageUploaded: "图片已上传至 Pinata！",
+  ipfsUrlLabel: "基础 URI (IPFS 链接)",
 };

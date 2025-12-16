@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ethers } from 'ethers';
 import { useLanguage } from '../contexts/LanguageContext';
 import { Button } from './ui/Button';
@@ -21,9 +21,52 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
   const [deployedAddress, setDeployedAddress] = useState<string | null>(null);
   const [txHash, setTxHash] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  
+  // Image Upload State
+  const [isUploading, setIsUploading] = useState(false);
+  const [ipfsUrl, setIpfsUrl] = useState('');
+
+  // Pinata Keys (Ideally these should be in env vars or backend proxy)
+  const PINATA_API_KEY = "06fd7d4dd9331ae8847d";
+  const PINATA_SECRET_KEY = "ac90ff56f19d1653ab90514e77a531ae17d0aaa482c87f216aa47bc0018bfd55";
 
   // Determine Deployment Mode
   const isFactorySupported = chainId && FACTORY_ADDRESSES[chainId];
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setError(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await fetch('https://api.pinata.cloud/pinning/pinFileToIPFS', {
+        method: 'POST',
+        headers: {
+          'pinata_api_key': PINATA_API_KEY,
+          'pinata_secret_api_key': PINATA_SECRET_KEY,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Pinata upload failed');
+      }
+
+      const data = await response.json();
+      const url = `https://gateway.pinata.cloud/ipfs/${data.IpfsHash}`;
+      setIpfsUrl(url);
+    } catch (err: any) {
+      console.error(err);
+      setError("Image Upload Failed: " + err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleDeploy = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,23 +84,19 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
         const factory = new ethers.Contract(factoryAddress, FACTORY_ABI, signer);
         
         console.log(`Deploying via Factory at ${factoryAddress}...`);
-        const tx = await factory.deployCollection(name, symbol);
+        // Added ipfsUrl as baseTokenURI
+        const tx = await factory.deployCollection(name, symbol, ipfsUrl);
         setTxHash(tx.hash);
         const receipt = await tx.wait();
         
-        // This assumes the factory emits an event or we calculate address. 
-        // For simplicity in this demo, we mock the address retrieval or grab from logs if we had the event ABI.
-        // Let's assume the factory returns the address in a real scenario via a call or event. 
-        // Here we just show the TX hash and a mock address for demo purposes if event parsing logic is complex without full ABI.
-        // In a real generic factory, we'd parse the "CollectionDeployed" event.
         setDeployedAddress("0x... (Check Explorer)"); 
       } else {
         // Mode B: Direct Deployment (Custom Chain)
         console.log("Deploying directly via Bytecode...");
         const factory = new ethers.ContractFactory(STANDARD_NFT_ABI, STANDARD_NFT_BYTECODE, signer);
         
-        // BaseURI is empty for this demo
-        const contract = await factory.deploy(name, symbol, ""); 
+        // Added ipfsUrl as baseTokenURI
+        const contract = await factory.deploy(name, symbol, ipfsUrl); 
         setTxHash(contract.deploymentTransaction()?.hash || null);
         
         await contract.waitForDeployment();
@@ -66,7 +105,6 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
       }
     } catch (err: any) {
       console.error(err);
-      // If code is placeholder, it will fail.
       if (err.code === 'INVALID_ARGUMENT' && err.message.includes('invalid bytecode')) {
         setError("Dev Note: Real deployment requires valid compiled bytecode in constants/contracts.ts");
       } else {
@@ -108,6 +146,35 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
         </div>
         
         <form onSubmit={handleDeploy} className="p-6 space-y-6">
+          {/* File Upload Section */}
+          <div className="bg-slate-900 p-4 rounded-lg border border-slate-700 border-dashed">
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              {t.uploadImage}
+            </label>
+            <div className="flex items-center space-x-4">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={isUploading || isDeploying}
+                className="block w-full text-sm text-slate-400
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-brand-600 file:text-white
+                  hover:file:bg-brand-700
+                  cursor-pointer"
+              />
+              {isUploading && <span className="text-brand-400 text-sm animate-pulse">{t.uploading}</span>}
+            </div>
+            {ipfsUrl && (
+              <div className="mt-3 p-2 bg-green-900/20 rounded border border-green-800/50">
+                <p className="text-xs text-green-400 font-medium mb-1">✅ {t.imageUploaded}</p>
+                <p className="text-xs text-slate-500 break-all">{ipfsUrl}</p>
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input 
               label={t.collectionName} 
@@ -124,6 +191,16 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
               required
             />
           </div>
+
+          {/* Hidden/Read-only IPFS Input display */}
+          {ipfsUrl && (
+             <Input 
+               label={t.ipfsUrlLabel} 
+               value={ipfsUrl} 
+               readOnly 
+               className="bg-slate-900 text-slate-500 cursor-not-allowed"
+             />
+          )}
 
           {error && (
             <div className="p-4 bg-red-900/50 border border-red-800 rounded-md">
@@ -152,7 +229,7 @@ export const DeployForm: React.FC<DeployFormProps> = ({ provider, signer, accoun
               type="submit" 
               className="w-full text-lg py-4" 
               isLoading={isDeploying}
-              disabled={!name || !symbol}
+              disabled={!name || !symbol || !ipfsUrl}
             >
               {isDeploying ? t.deploying : t.deploy}
             </Button>

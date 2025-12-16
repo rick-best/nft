@@ -23,5 +23,5 @@ export const FACTORY_ADDRESSES: Record<number, string> = {
 };
 
 export const FACTORY_ABI = [
-  "function deployCollection(string name, string symbol) external returns (address)"
+  "function deployCollection(string name, string symbol, string baseTokenURI) external returns (address)"
 ];

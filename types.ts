@@ -26,6 +26,10 @@ export interface Translations {
   launchpadTitle: string;
   launchpadSubtitle: string;
   required: string;
+  uploadImage: string;
+  uploading: string;
+  imageUploaded: string;
+  ipfsUrlLabel: string;
 }
 
 export interface ChainConfig {
